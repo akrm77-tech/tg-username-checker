@@ -22,16 +22,38 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout full history
+      - name: Checkout current tree
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Run Gitleaks on current files
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | \
+            sudo sh -s -- -b /usr/local/bin v8.24.2
+
+      - name: Scan current files
+        run: |
+          set +e
+          gitleaks dir --redact --report-format sarif \
+            --report-path gitleaks-current.sarif .
+          code=$?
+          if [ "$code" -gt 1 ]; then
+            echo "Gitleaks execution failed with code $code"
+            exit "$code"
+          fi
+          if [ "$code" -eq 1 ]; then
+            echo "New secret detected in current files. Remove or rotate it before merging."
+            exit 1
+          fi
+
+      - name: Upload current-file report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-current-report
+          path: gitleaks-current.sarif
+          if-no-files-found: ignore
 
   history:
     name: Scan Git history
