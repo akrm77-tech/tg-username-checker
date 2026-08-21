@@ -1,0 +1,102 @@
+name: Secret Scan
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: "30 6 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitleaks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  current-files:
+    name: Scan current files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current tree
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install pinned Gitleaks
+        run: |
+          set -euo pipefail
+          version="8.24.2"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan current files
+        run: |
+          set +e
+          gitleaks dir --redact --report-format sarif \
+            --report-path gitleaks-current.sarif .
+          code=$?
+          if [ "$code" -gt 1 ]; then
+            echo "Gitleaks execution failed with code $code"
+            exit "$code"
+          fi
+          if [ "$code" -eq 1 ]; then
+            echo "New secret detected in current files. Remove or rotate it before merging."
+            exit 1
+          fi
+
+      - name: Upload current-file report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-current-report
+          path: gitleaks-current.sarif
+          if-no-files-found: ignore
+
+  history:
+    name: Scan Git history
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Gitleaks
+        run: |
+          set -euo pipefail
+          version="8.24.2"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan Git history with redacted report
+        run: |
+          set +e
+          gitleaks git --redact --report-format sarif \
+            --report-path gitleaks-history.sarif .
+          code=$?
+          if [ "$code" -gt 1 ]; then
+            echo "Gitleaks execution failed with code $code"
+            exit "$code"
+          fi
+          if [ "$code" -eq 1 ]; then
+            echo "Historical findings detected; review the SARIF artifact and rotate valid secrets."
+          fi
+
+      - name: Upload history report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-history-report
+          path: gitleaks-history.sarif
+          if-no-files-found: ignore
