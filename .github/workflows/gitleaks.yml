@@ -1,0 +1,72 @@
+name: Secret Scan
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: "30 6 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitleaks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  current-files:
+    name: Scan current files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks on current files
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+
+  history:
+    name: Scan Git history
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | \
+            sudo sh -s -- -b /usr/local/bin v8.24.2
+
+      - name: Scan Git history with redacted report
+        run: |
+          set +e
+          gitleaks git --redact --report-format sarif \
+            --report-path gitleaks-history.sarif .
+          code=$?
+          if [ "$code" -gt 1 ]; then
+            echo "Gitleaks execution failed with code $code"
+            exit "$code"
+          fi
+          if [ "$code" -eq 1 ]; then
+            echo "Historical findings detected; review the SARIF artifact and rotate valid secrets."
+          fi
+
+      - name: Upload history report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-history-report
+          path: gitleaks-history.sarif
+          if-no-files-found: ignore
