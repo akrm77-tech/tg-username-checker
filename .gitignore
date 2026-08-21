@@ -1,10 +1,47 @@
+# Python
 __pycache__/
 *.py[cod]
-.env
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual Environment
 venv/
+env/
+ENV/
+.venv
+
+# Sensitive Data
+.env
+*.env
+*.key
+*.pem
+*.crt
+
+# Logs & Output
 *.log
 *.json
 *.txt
 *.html
+*.csv
+*.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Project Specific
 !README.md
 !requirements.txt
+!LICENSE
+!SECURITY.md
