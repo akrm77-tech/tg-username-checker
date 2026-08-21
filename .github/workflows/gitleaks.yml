@@ -27,10 +27,14 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Install Gitleaks
+      - name: Install pinned Gitleaks
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | \
-            sudo sh -s -- -b /usr/local/bin v8.24.2
+          set -euo pipefail
+          version="8.24.2"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
 
       - name: Scan current files
         run: |
@@ -66,10 +70,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Gitleaks
+      - name: Install pinned Gitleaks
         run: |
-          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh | \
-            sudo sh -s -- -b /usr/local/bin v8.24.2
+          set -euo pipefail
+          version="8.24.2"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
 
       - name: Scan Git history with redacted report
         run: |
