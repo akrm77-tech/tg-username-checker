@@ -1,0 +1,95 @@
+# tg-username-checker
+
+## 1. تعريف المشروع
+
+`tg-username-checker` أداة سطر أوامر لفحص توفر أسماء المستخدمين على تيليجرام، مع إمكانات اختيارية لإرسال النتائج عبر بوت تيليجرام وحفظ السجلات وإحصائيات الاستخدام.
+
+## 2. الحالة الحالية
+
+النسخة الحالية تجريبية وموجهة للاستخدام الشخصي أو التعليمي. نقطة التشغيل الرئيسية هي `src/checker.py`. أما `src/config.py` و`src/models.py` فهما طبقة أولية منظمة للإعدادات ونماذج البيانات، بينما توجد بقية الوحدات التمهيدية تمهيدًا لاستخراج المسؤوليات من الملف الرئيسي.
+
+## 3. المتطلبات
+
+| المكوّن | الحد الأدنى أو الوصف |
+|---|---|
+| Python | إصدار حديث يدعم `dataclasses` و`pathlib`؛ يُفضّل Python 3.10 أو أحدث |
+| الاتصال | اتصال بالإنترنت عند تنفيذ الفحص أو التواصل مع Telegram |
+| الاعتمادات | التبعيات الموجودة في `requirements.txt` |
+| بيانات Telegram | مطلوبة فقط عند تفعيل وظائف البوت أو إرسال النتائج |
+
+## 4. التثبيت
+
+```bash
+git clone https://github.com/akrm77-tech/tg-username-checker.git
+cd tg-username-checker
+python -m venv .venv
+
+# Linux وmacOS
+source .venv/bin/activate
+
+# Windows PowerShell
+# .venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+## 5. التشغيل
+
+شغّل الواجهة التفاعلية من جذر المشروع:
+
+```bash
+python src/checker.py
+```
+
+تظهر القوائم داخل الطرفية. اختر العملية المطلوبة واتبع التعليمات الظاهرة. لا تُدخل توكنًا أو بيانات اعتماد داخل مستودع Git، ولا تشارك ملفات الإعدادات التي تحتوي على أسرار.
+
+## 6. إعداد البوت والسجلات
+
+يمكن تمرير إعدادات البوت والسجلات من خلال متغيرات البيئة بدل وضعها في الكود:
+
+```bash
+export TELEGRAM_BOT_TOKEN="ضع_توكن_البوت_هنا"
+export TELEGRAM_CHAT_ID="ضع_معرف_المحادثة_هنا"
+export TELEGRAM_ALLOWED_CHAT_IDS="123456789,987654321"
+export TG_CHECKER_LOG_DIR="logs"
+export TG_CHECKER_STATS_FILE="bot_usage_stats.json"
+python src/checker.py
+```
+
+في Windows PowerShell:
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN = "ضع_توكن_البوت_هنا"
+$env:TELEGRAM_CHAT_ID = "ضع_معرف_المحادثة_هنا"
+$env:TELEGRAM_ALLOWED_CHAT_IDS = "123456789,987654321"
+$env:TG_CHECKER_LOG_DIR = "logs"
+$env:TG_CHECKER_STATS_FILE = "bot_usage_stats.json"
+python src/checker.py
+```
+
+## 7. المخرجات
+
+يحفظ التطبيق نتائج الفحص في ملفات محلية بحسب العملية المختارة، ويكتب سجل التشغيل في `logs/checker.log` افتراضيًا. عند تشغيل البوت، تُحفظ إحصائيات الاستخدام في `bot_usage_stats.json` افتراضيًا. يمكن تغيير المسارين بالمتغيرين الموضحين أعلاه.
+
+## 8. الاختبار
+
+للتأكد من صحة الصياغة والاختبارات الموجودة:
+
+```bash
+python -m py_compile src/checker.py src/config.py src/models.py
+python -m unittest discover -s tests -v
+```
+
+## 9. السلامة والاستخدام المسؤول
+
+استخدم الأداة فقط مع الحسابات والخدمات التي تملكها أو تملك إذنًا صريحًا لاختبارها. احترم شروط خدمة Telegram وحدود الطلبات، ولا تستخدم الأداة لتجاوز الحظر أو جمع بيانات خاصة أو إرسال رسائل غير مرغوبة. راجع [SECURITY.md](SECURITY.md) قبل التشغيل.
+
+## 10. خريطة الوثائق
+
+| المستند | الغرض |
+|---|---|
+| [`docs/usage.md`](docs/usage.md) | خطوات التشغيل اليومية وأمثلة الاستخدام |
+| [`docs/configuration.md`](docs/configuration.md) | متغيرات البيئة وملفات الإعدادات |
+| [`docs/project-structure.md`](docs/project-structure.md) | شرح مجلدات المشروع ومسؤولياتها |
+| [`SECURITY.md`](SECURITY.md) | إرشادات السلامة والإبلاغ عن المشكلات |
